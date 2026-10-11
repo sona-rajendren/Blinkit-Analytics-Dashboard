@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Blinkit Analytics Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700;800&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{--bg:#FFFDF2;--ink:#1B2A1E;--mute:#6B7568;--card:#FFFFFF;--line:#E8E3C8;--green:#0C831F;--yellow:#F8CB46;--red:#D9473B}
+@media (prefers-color-scheme:dark){:root{--bg:#10170F;--ink:#F4F1DC;--mute:#98A294;--card:#18221A;--line:#2A372B;--green:#4CC261;--yellow:#F8CB46;--red:#F0766B}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 Figtree,system-ui,sans-serif}
+header{background:var(--yellow);color:#1B2A1E;padding:26px clamp(16px,4vw,48px) 0}
+header h1{margin:0;font:800 clamp(28px,5vw,44px)/1 'Bricolage Grotesque',sans-serif;letter-spacing:-.02em}
+header p{margin:6px 0 16px;max-width:64ch}
+nav{display:flex;gap:4px;flex-wrap:wrap}
+nav button{font:600 15px Figtree,sans-serif;border:0;background:transparent;color:#1B2A1E;padding:10px 16px;border-radius:10px 10px 0 0;cursor:pointer}
+nav button[aria-selected=true]{background:var(--bg);color:var(--ink)}
+main{padding:20px clamp(16px,4vw,48px) 48px;max-width:1280px;margin:auto}
+.filters{display:flex;flex-wrap:wrap;gap:12px;align-items:end;margin-bottom:18px}
+.filters label{display:flex;flex-direction:column;font-size:13px;color:var(--mute);gap:4px}
+select,.reset{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink)}
+.reset{cursor:pointer;background:var(--green);color:#fff;border-color:var(--green)}
+:focus-visible{outline:3px solid var(--green);outline-offset:2px}
+.note{color:var(--mute);font-size:13px;margin:-6px 0 14px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin-bottom:18px}
+.kpi{background:var(--card);border:1px solid var(--line);border-left:6px solid var(--green);border-radius:10px;padding:12px 16px}
+.kpi span{color:var(--mute);font-size:13px}
+.kpi b{display:block;font:700 28px/1.15 'Bricolage Grotesque',sans-serif}
+.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;min-width:0}
+.card h2{margin:0 0 10px;font:700 16px 'Bricolage Grotesque',sans-serif}
+.c4{grid-column:span 4}.c5{grid-column:span 5}.c6{grid-column:span 6}.c7{grid-column:span 7}.c8{grid-column:span 8}.c12{grid-column:span 12}
+.box{position:relative;height:300px}.tall{height:380px}
+table{width:100%;border-collapse:collapse}
+th,td{text-align:right;padding:8px 10px;border-bottom:1px solid var(--line)}
+th:first-child,td:first-child{text-align:left}
+th{color:var(--mute);font-weight:500;font-size:13px}
+.wrap{overflow-x:auto}
+.panel[hidden]{display:none}
+@media(max-width:860px){.c4,.c5,.c6,.c7,.c8{grid-column:span 12}}
+</style>
+</head>
+<body>
+<header>
+  <h1>Blinkit analytics dashboard</h1>
+  <p>Orders, delivery, customer feedback, marketing and inventory in one place.</p>
+  <nav role="tablist" id="tabs"></nav>
+</header>
+<main>
+  <div class="filters" id="filters"></div>
+  <p class="note" id="note"></p>
+
+  <section class="panel" id="p_overview">
+    <div class="kpis" id="k_overview"></div>
+    <div class="grid">
+      <div class="card c8"><h2>Revenue and orders by month</h2><div class="box"><canvas id="c_month"></canvas></div></div>
+      <div class="card c4"><h2>Revenue by payment method</h2><div class="box"><canvas id="c_pay"></canvas></div></div>
+      <div class="card c6"><h2>Revenue by category</h2><div class="box tall"><canvas id="c_cat"></canvas></div></div>
+      <div class="card c6"><h2>Top 10 products by revenue</h2><div class="box tall"><canvas id="c_prod"></canvas></div></div>
+      <div class="card c6"><h2>Revenue by customer segment</h2><div class="box"><canvas id="c_seg"></canvas></div></div>
+      <div class="card c6"><h2>Orders by hour of day</h2><div class="box"><canvas id="c_hour"></canvas></div></div>
+    </div>
+  </section>
+
+  <section class="panel" id="p_delivery" hidden>
+    <div class="kpis" id="k_delivery"></div>
+    <div class="grid">
+      <div class="card c4"><h2>Delivery status</h2><div class="box"><canvas id="c_status"></canvas></div></div>
+      <div class="card c8"><h2>Average delay vs promised time by month (minutes)</h2><div class="box"><canvas id="c_delay"></canvas></div></div>
+      <div class="card c6"><h2>On-time rate by distance</h2><div class="box"><canvas id="c_dist"></canvas></div></div>
+      <div class="card c6"><h2>On-time rate by category</h2><div class="box"><canvas id="c_ontime_cat"></canvas></div></div>
+    </div>
+  </section>
+
+  <section class="panel" id="p_feedback" hidden>
+    <div class="kpis" id="k_feedback"></div>
+    <div class="grid">
+      <div class="card c4"><h2>Rating distribution</h2><div class="box"><canvas id="c_rating"></canvas></div></div>
+      <div class="card c4"><h2>Sentiment</h2><div class="box"><canvas id="c_sent"></canvas></div></div>
+      <div class="card c4"><h2>Average rating by delivery status</h2><div class="box"><canvas id="c_rate_status"></canvas></div></div>
+      <div class="card c12"><h2>Feedback topics by sentiment</h2><div class="box"><canvas id="c_fb"></canvas></div></div>
+    </div>
+  </section>
+
+  <section class="panel" id="p_marketing" hidden>
+    <div class="kpis" id="k_marketing"></div>
+    <div class="grid">
+      <div class="card c6"><h2>Return on ad spend (ROAS) by campaign</h2><div class="box"><canvas id="c_roas"></canvas></div></div>
+      <div class="card c6"><h2>Spend and revenue by channel</h2><div class="box"><canvas id="c_chan"></canvas></div></div>
+      <div class="card c12"><h2>Spend and revenue by month</h2><div class="box"><canvas id="c_mkt_month"></canvas></div></div>
+      <div class="card c12"><h2>Campaign breakdown</h2><div class="wrap"><table id="t_camp"></table></div></div>
+    </div>
+  </section>
+
+  <section class="panel" id="p_inventory" hidden>
+    <div class="kpis" id="k_inventory"></div>
+    <div class="grid">
+      <div class="card c6"><h2>Damage rate by category</h2><div class="box tall"><canvas id="c_dmg_cat"></canvas></div></div>
+      <div class="card c6"><h2>Stock received and damaged by month</h2><div class="box tall"><canvas id="c_inv_month"></canvas></div></div>
+    </div>
+  </section>
+</main>
+<script src="data.js"></script>
+<script>
+const D = window.BLINKIT, O = D.orders, M = D.marketing, I = D.inventory;
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const inr = n => n >= 1e7 ? "₹" + (n/1e7).toFixed(2) + " Cr" : n >= 1e5 ? "₹" + (n/1e5).toFixed(2) + " L" : "₹" + Math.round(n).toLocaleString("en-IN");
+const num = n => Math.round(n).toLocaleString("en-IN");
+const pct = n => (n*100).toFixed(1) + "%";
+const sum = (idx, f) => idx.reduce((s,i) => s + f(i), 0);
+const uniq = a => [...new Set(a)].sort();
+
+const TABS = [["overview","Overview"],["delivery","Delivery"],["feedback","Feedback"],["marketing","Marketing"],["inventory","Inventory"]];
+const NOTES = {
+  overview:"Revenue is the order total. Filters apply to this tab.",
+  delivery:"Delay is minutes after the promised time; negative means early.",
+  feedback:"One rating per order.",
+  marketing:"Campaign data is not linked to orders, so only the year filter applies.",
+  inventory:"Inventory is by product category; the year and category filters apply."};
+const state = {tab:"overview", year:"", cat:"", seg:"", pay:""};
+const FIELDS = [["year","Year",["2023","2024"],["overview","delivery","feedback","marketing","inventory"]],
+                ["cat","Category",uniq(O.cat),["overview","delivery","feedback","inventory"]],
+                ["seg","Customer segment",uniq(O.seg),["overview","delivery","feedback"]],
+                ["pay","Payment method",uniq(O.pay),["overview","delivery","feedback"]]];
+
+function buildChrome(){
+  const nav = document.getElementById("tabs");
+  TABS.forEach(([k,l]) => {
+    const b = document.createElement("button");
+    b.textContent = l; b.setAttribute("role","tab"); b.id = "tab_"+k;
+    b.onclick = () => { state.tab = k; render(); };
+    nav.appendChild(b);
+  });
+  const f = document.getElementById("filters");
+  FIELDS.forEach(([k,l,opts]) => {
+    f.insertAdjacentHTML("beforeend", `<label id="lab_${k}">${l}<select id="f_${k}"><option value="">All</option>${opts.map(o=>`<option>${o}</option>`).join("")}</select></label>`);
+    document.getElementById("f_"+k).onchange = e => { state[k] = e.target.value; render(); };
+  });
+  f.insertAdjacentHTML("beforeend", '<button class="reset" id="reset">Reset filters</button>');
+  document.getElementById("reset").onclick = () => {
+    ["year","cat","seg","pay"].forEach(k => { state[k] = ""; document.getElementById("f_"+k).value = ""; }); render();
+  };
+}
+
+const okYear = ym => !state.year || ym.startsWith(state.year);
+const oIdx = () => { const r=[]; for(let i=0;i<O.ym.length;i++) if(okYear(O.ym[i]) && (!state.cat||O.cat[i]===state.cat) && (!state.seg||O.seg[i]===state.seg) && (!state.pay||O.pay[i]===state.pay)) r.push(i); return r; };
+const mIdx = () => { const r=[]; for(let i=0;i<M.ym.length;i++) if(okYear(M.ym[i])) r.push(i); return r; };
+const iIdx = () => { const r=[]; for(let i=0;i<I.ym.length;i++) if(okYear(I.ym[i]) && (!state.cat||I.cat[i]===state.cat)) r.push(i); return r; };
+
+function grp(src, idx, key, init, step){
+  const m = new Map();
+  idx.forEach(i => { const k = src[key][i]; let a = m.get(k); if(!a){ a = init(); m.set(k,a); } step(a,i); });
+  return m;
+}
+const entries = (m, f) => [...m].map(([k,a]) => ({k, ...f(a)}));
+
+const charts = {};
+function draw(id, type, data, opts = {}){
+  if(charts[id]) charts[id].destroy();
+  const dough = type === "doughnut";
+  const base = {responsive:true, maintainAspectRatio:false,
+    plugins:{legend:{display:dough || data.datasets.length > 1, position:"bottom", labels:{color:css("--ink")}}}};
+  if(!dough) base.scales = {x:{ticks:{color:css("--mute")},grid:{display:false}}, y:{ticks:{color:css("--mute")},grid:{color:css("--line")}}};
+  const merged = {...base, ...opts, plugins:{...base.plugins, ...(opts.plugins||{})}};
+  charts[id] = new Chart(document.getElementById(id), {type, data, options:merged});
+}
+const horiz = {indexAxis:"y", scales:{x:{ticks:{color:css("--mute")},grid:{color:css("--line")}}, y:{ticks:{color:css("--ink")},grid:{display:false}}}};
+const kpis = (id, arr) => document.getElementById(id).innerHTML = arr.map(([l,v]) => `<div class="kpi"><span>${l}</span><b>${v}</b></div>`).join("");
+const pal = () => [css("--green"), css("--yellow"), "#7CC68A", "#C79A00", "#2E5E3A", "#B8E0C0"];
+const bar = (labels, vals, color, label) => ({labels, datasets:[{label, data:vals, backgroundColor:color}]});
+const dough = (a, fv) => ({labels:a.map(x=>x.k), datasets:[{data:a.map(fv), backgroundColor:pal(), borderColor:css("--card"), borderWidth:2}]});
+
+function renderOverview(){
+  const idx = oIdx(), rev = sum(idx, i=>O.rev[i]), ontime = idx.filter(i=>O.status[i]==="On Time").length;
+  kpis("k_overview", [["Revenue", inr(rev)], ["Orders", num(idx.length)], ["Average order value", idx.length ? inr(rev/idx.length) : "–"],
+    ["Average rating", idx.length ? (sum(idx,i=>O.rating[i])/idx.length).toFixed(2)+" / 5" : "–"], ["On-time deliveries", idx.length ? pct(ontime/idx.length) : "–"]]);
+  const byRev = (key, n) => entries(grp(O, idx, key, ()=>({r:0,n:0}), (a,i)=>{a.r+=O.rev[i]; a.n++;}), a=>a).sort((x,y)=>y.r-x.r).slice(0,n||999);
+  const mon = entries(grp(O, idx, "ym", ()=>({r:0,n:0}), (a,i)=>{a.r+=O.rev[i]; a.n++;}), a=>a).sort((x,y)=>x.k.localeCompare(y.k));
+  draw("c_month","bar",{labels:mon.map(x=>x.k), datasets:[
+    {type:"line", label:"Revenue (₹)", data:mon.map(x=>x.r), borderColor:css("--green"), backgroundColor:css("--green"), yAxisID:"y", tension:.25, pointRadius:3},
+    {type:"bar", label:"Orders", data:mon.map(x=>x.n), backgroundColor:css("--yellow"), yAxisID:"y1"}]},
+    {scales:{x:{ticks:{color:css("--mute")},grid:{display:false}}, y:{ticks:{color:css("--mute")},grid:{color:css("--line")}}, y1:{position:"right",ticks:{color:css("--mute")},grid:{display:false}}}});
+  draw("c_pay","doughnut",dough(byRev("pay"), x=>x.r), {cutout:"58%"});
+  const cat = byRev("cat"); draw("c_cat","bar",bar(cat.map(x=>x.k),cat.map(x=>x.r),css("--green"),"Revenue"),horiz);
+  const pr = byRev("prod",10); draw("c_prod","bar",bar(pr.map(x=>x.k),pr.map(x=>x.r),css("--green"),"Revenue"),horiz);
+  const seg = byRev("seg"); draw("c_seg","bar",bar(seg.map(x=>x.k),seg.map(x=>x.r),css("--yellow"),"Revenue"));
+  const hrs = [...Array(24).keys()], hc = hrs.map(()=>0); idx.forEach(i=>hc[O.hour[i]]++);
+  draw("c_hour","bar",bar(hrs.map(h=>h+":00"),hc,css("--green"),"Orders"));
+}
+
+function renderDelivery(){
+  const idx = oIdx(), n = idx.length || 1;
+  const ontime = idx.filter(i=>O.status[i]==="On Time").length;
+  const delayed = idx.filter(i=>O.dmin[i] > 0);
+  kpis("k_delivery", [["On-time rate", pct(ontime/n)], ["Delayed orders", num(idx.length-ontime)],
+    ["Avg delay vs promised", (sum(idx,i=>O.dmin[i])/n).toFixed(1)+" min"], ["Avg distance", (sum(idx,i=>O.dist[i])/n).toFixed(2)+" km"]]);
+  const st = entries(grp(O, idx, "status", ()=>({n:0}), (a)=>{a.n++;}), a=>a).sort((x,y)=>y.n-x.n);
+  draw("c_status","doughnut",dough(st,x=>x.n),{cutout:"58%"});
+  const mon = entries(grp(O, idx, "ym", ()=>({s:0,n:0}), (a,i)=>{a.s+=O.dmin[i]; a.n++;}), a=>a).sort((x,y)=>x.k.localeCompare(y.k));
+  draw("c_delay","line",{labels:mon.map(x=>x.k), datasets:[{label:"Avg delay (min)", data:mon.map(x=>+(x.s/x.n).toFixed(2)), borderColor:css("--green"), backgroundColor:css("--yellow")+"55", fill:true, tension:.25}]});
+  const buckets = ["0–1 km","1–2 km","2–3 km","3–4 km","4–5 km"], bk = buckets.map(()=>({n:0,o:0}));
+  idx.forEach(i => { const b = Math.min(4, Math.floor(Math.max(0, O.dist[i]-1e-9))); bk[b].n++; if(O.status[i]==="On Time") bk[b].o++; });
+  draw("c_dist","bar",bar(buckets, bk.map(b=>b.n ? +(b.o/b.n*100).toFixed(1) : 0), css("--green"), "On-time %"), {scales:{x:{ticks:{color:css("--mute")},grid:{display:false}}, y:{min:0,max:100,ticks:{color:css("--mute")},grid:{color:css("--line")}}}});
+  const oc = entries(grp(O, idx, "cat", ()=>({n:0,o:0}), (a,i)=>{a.n++; if(O.status[i]==="On Time") a.o++;}), a=>({v:a.o/a.n*100})).sort((x,y)=>y.v-x.v);
+  draw("c_ontime_cat","bar",bar(oc.map(x=>x.k), oc.map(x=>+x.v.toFixed(1)), css("--yellow"), "On-time %"), {indexAxis:"y", scales:{x:{min:0,max:100,ticks:{color:css("--mute")},grid:{color:css("--line")}}, y:{ticks:{color:css("--ink")},grid:{display:false}}}});
+}
+
+function renderFeedback(){
+  const idx = oIdx(), n = idx.length || 1;
+  const pos = idx.filter(i=>O.sent[i]==="Positive").length, neg = idx.filter(i=>O.sent[i]==="Negative").length;
+  kpis("k_feedback", [["Average rating", (sum(idx,i=>O.rating[i])/n).toFixed(2)+" / 5"], ["Responses", num(idx.length)], ["Positive", pct(pos/n)], ["Negative", pct(neg/n)]]);
+  const rc = [0,0,0,0,0]; idx.forEach(i=>rc[O.rating[i]-1]++);
+  draw("c_rating","bar",bar(["1","2","3","4","5"],rc,css("--green"),"Responses"));
+  const se = entries(grp(O, idx, "sent", ()=>({n:0}), a=>{a.n++;}), a=>a);
+  const order = ["Positive","Neutral","Negative"], colors = {Positive:css("--green"), Neutral:css("--yellow"), Negative:css("--red")};
+  const seS = order.map(k => se.find(x=>x.k===k) || {k, n:0});
+  draw("c_sent","doughnut",{labels:seS.map(x=>x.k), datasets:[{data:seS.map(x=>x.n), backgroundColor:seS.map(x=>colors[x.k]), borderColor:css("--card"), borderWidth:2}]},{cutout:"58%"});
+  const rs = entries(grp(O, idx, "status", ()=>({s:0,n:0}), (a,i)=>{a.s+=O.rating[i]; a.n++;}), a=>({v:a.s/a.n}));
+  draw("c_rate_status","bar",bar(rs.map(x=>x.k), rs.map(x=>+x.v.toFixed(2)), css("--yellow"), "Avg rating"), {scales:{x:{ticks:{color:css("--mute")},grid:{display:false}}, y:{min:0,max:5,ticks:{color:css("--mute")},grid:{color:css("--line")}}}});
+  const topics = uniq(idx.map(i=>O.fb[i]));
+  draw("c_fb","bar",{labels:topics, datasets:order.map(s=>({label:s, backgroundColor:colors[s], data:topics.map(t=>idx.filter(i=>O.fb[i]===t && O.sent[i]===s).length)}))},
+    {scales:{x:{stacked:true,ticks:{color:css("--mute")},grid:{display:false}}, y:{stacked:true,ticks:{color:css("--mute")},grid:{color:css("--line")}}}});
+}
+
+function renderMarketing(){
+  const idx = mIdx(), sp = sum(idx,i=>M.spend[i]), rv = sum(idx,i=>M.rev[i]), cl = sum(idx,i=>M.clk[i]), cv = sum(idx,i=>M.conv[i]), im = sum(idx,i=>M.imp[i]);
+  kpis("k_marketing", [["Ad spend", inr(sp)], ["Revenue generated", inr(rv)], ["ROAS", sp ? (rv/sp).toFixed(2)+"x" : "–"],
+    ["Click-through rate", im ? pct(cl/im) : "–"], ["Conversion rate", cl ? pct(cv/cl) : "–"]]);
+  const mk = key => entries(grp(M, idx, key, ()=>({sp:0,rv:0,cl:0,cv:0,im:0}), (a,i)=>{a.sp+=M.spend[i]; a.rv+=M.rev[i]; a.cl+=M.clk[i]; a.cv+=M.conv[i]; a.im+=M.imp[i];}), a=>a);
+  const camp = mk("camp").sort((x,y)=>y.rv/y.sp - x.rv/x.sp);
+  draw("c_roas","bar",bar(camp.map(x=>x.k), camp.map(x=>+(x.rv/x.sp).toFixed(2)), css("--green"), "ROAS"), {indexAxis:"y", scales:{x:{ticks:{color:css("--mute")},grid:{color:css("--line")}}, y:{ticks:{color:css("--ink")},grid:{display:false}}}});
+  const ch = mk("ch");
+  draw("c_chan","bar",{labels:ch.map(x=>x.k), datasets:[{label:"Spend", data:ch.map(x=>x.sp), backgroundColor:css("--yellow")}, {label:"Revenue", data:ch.map(x=>x.rv), backgroundColor:css("--green")}]});
+  const mo = mk("ym").sort((x,y)=>x.k.localeCompare(y.k));
+  draw("c_mkt_month","line",{labels:mo.map(x=>x.k), datasets:[{label:"Spend", data:mo.map(x=>x.sp), borderColor:css("--yellow"), backgroundColor:css("--yellow"), tension:.25}, {label:"Revenue", data:mo.map(x=>x.rv), borderColor:css("--green"), backgroundColor:css("--green"), tension:.25}]});
+  document.getElementById("t_camp").innerHTML = "<tr><th>Campaign</th><th>Spend</th><th>Revenue</th><th>ROAS</th><th>Clicks</th><th>Conversions</th><th>Conv. rate</th></tr>" +
+    camp.map(x=>`<tr><td>${x.k}</td><td>${inr(x.sp)}</td><td>${inr(x.rv)}</td><td>${(x.rv/x.sp).toFixed(2)}x</td><td>${num(x.cl)}</td><td>${num(x.cv)}</td><td>${x.cl ? pct(x.cv/x.cl) : "–"}</td></tr>`).join("");
+}
+
+function renderInventory(){
+  const idx = iIdx(), rec = sum(idx,i=>I.rec[i]), dmg = sum(idx,i=>I.dmg[i]);
+  kpis("k_inventory", [["Stock received", num(rec)], ["Damaged stock", num(dmg)], ["Damage rate", rec ? pct(dmg/rec) : "–"]]);
+  const cat = entries(grp(I, idx, "cat", ()=>({r:0,d:0}), (a,i)=>{a.r+=I.rec[i]; a.d+=I.dmg[i];}), a=>({v:a.d/a.r*100})).sort((x,y)=>y.v-x.v);
+  draw("c_dmg_cat","bar",bar(cat.map(x=>x.k), cat.map(x=>+x.v.toFixed(2)), css("--red"), "Damage rate %"), horiz);
+  const mo = entries(grp(I, idx, "ym", ()=>({r:0,d:0}), (a,i)=>{a.r+=I.rec[i]; a.d+=I.dmg[i];}), a=>a).sort((x,y)=>x.k.localeCompare(y.k));
+  draw("c_inv_month","bar",{labels:mo.map(x=>x.k), datasets:[{label:"Received", data:mo.map(x=>x.r), backgroundColor:css("--green")}, {label:"Damaged", data:mo.map(x=>x.d), backgroundColor:css("--red")}]});
+}
+
+const RENDER = {overview:renderOverview, delivery:renderDelivery, feedback:renderFeedback, marketing:renderMarketing, inventory:renderInventory};
+function render(){
+  TABS.forEach(([k]) => {
+    document.getElementById("tab_"+k).setAttribute("aria-selected", k===state.tab);
+    document.getElementById("p_"+k).hidden = k !== state.tab;
+  });
+  FIELDS.forEach(([k,,,tabs]) => document.getElementById("lab_"+k).style.display = tabs.includes(state.tab) ? "" : "none");
+  document.getElementById("note").textContent = NOTES[state.tab];
+  RENDER[state.tab]();
+}
+buildChrome(); render();
+</script>
+</body>
+</html>

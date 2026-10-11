@@ -1,0 +1,4 @@
+delivery_status,orders,avg_delay_min,avg_rating
+On Time,3470,0.014,3.333
+Significantly Delayed,493,22.844,3.327
+Slightly Delayed,1037,10.516,3.392
