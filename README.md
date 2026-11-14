@@ -1,158 +1,92 @@
-# 📊 Blinkit Analytics Dashboard
+# Blinkit Analytics Dashboard
 
-## 📌 Project Overview
+An end-to-end analysis of a quick-commerce business: data cleaning, SQL, exploratory analysis in Python, and an interactive dashboard covering sales, delivery, customer feedback, marketing and inventory.
 
-The **Blinkit Analytics Dashboard** is a Data Analysis and Visualization project designed to analyze grocery delivery data and generate meaningful business insights.
+**[Live dashboard](https://sona-rajendren.github.io/Blinkit-Analytics-Dashboard/)** · **[Analysis notebook](notebooks/01_eda_and_cleaning.ipynb)** · **[SQL queries](sql/queries.sql)**
 
-The project uses Python for data processing and analysis, SQL for querying data, and HTML, CSS, JavaScript, and Chart.js to create an interactive dashboard.
+![Dashboard overview](docs/screenshots/overview.png)
 
-## 🎯 Project Objectives
+## Business questions
+1. How much revenue is generated, and which categories, customer segments and payment methods drive it?
+2. How reliable is delivery, and what explains late orders?
+3. Does delivery performance affect customer ratings?
+4. Which marketing campaigns and channels give the best return?
+5. Where are inventory losses highest?
 
-- Analyze sales and revenue performance.
-- Evaluate delivery performance.
-- Understand customer feedback and ratings.
-- Analyze marketing campaign performance.
-- Monitor inventory status.
-- Present insights through interactive visualizations.
-
-## 🛠️ Technologies Used
-
-| Technology | Purpose |
+## Key findings
+| Area | Finding |
 |---|---|
-| Python | Data analysis and processing |
-| Pandas | Data manipulation |
-| NumPy | Numerical operations |
-| Matplotlib | Data visualization |
-| SQL | Data querying |
-| HTML | Dashboard structure |
-| CSS | Dashboard styling |
-| JavaScript | Dashboard interactivity |
-| Chart.js | Charts and graphs |
+| Sales | ₹1.10 Cr revenue from 5,000 orders; average order value ₹2,202. Monthly revenue is flat at about ₹5.6 lakh. |
+| Categories | Dairy & Breakfast leads (11.3% of revenue); Baby Care and Instant & Frozen Food trail. Differences come from order volume, since basket size is similar across categories. |
+| Segments and payments | Each segment and payment method contributes 23–27% of revenue, so none stands out. |
+| Delivery | 69.4% of orders are on time; 30.6% are late. Distance does not explain lateness (chi-square p = 0.52), and every recorded delay reason is "Traffic". |
+| Feedback | Average rating 3.34 / 5. Late orders are rated the same as on-time ones (p = 0.55), which suggests ratings in this dataset are independent of delivery. |
+| Marketing | ₹1.63 Cr spend returned ₹3.22 Cr (ROAS 1.97x). Campaigns range only from 1.94x to 2.03x. Referral Program (2.03x) and the Email channel (2.05x) lead slightly. |
+| Inventory | Recorded damage is about 59% of received stock, and damaged units exceed received units in 39% of records. This indicates a data-capture problem, so the figures need validating before use. |
 
-## ✨ Key Features
+### Recommendations
+- Grow order frequency in low-volume categories rather than basket size.
+- Record richer delay reasons (rider, store preparation, weather) and review promised-time estimates, since "Traffic" alone is not actionable.
+- Shift a test budget towards Referral and Email, and A/B test, because the gaps between campaigns are small.
+- Fix inventory damage capture before analysing losses.
 
-- 📈 **Sales Analysis:** Analyze orders, revenue, and average order value.
-- 🚚 **Delivery Analysis:** Evaluate delivery performance and on-time delivery rates.
-- ⭐ **Customer Feedback:** Explore customer ratings and feedback.
-- 📢 **Marketing Analysis:** Examine marketing campaign performance.
-- 📦 **Inventory Analysis:** Analyze stock availability and inventory status.
-- 📊 **Interactive Dashboard:** Visualize key metrics using charts and KPI cards.
+## Data
+Eight CSV tables in `data/raw/`: orders, order items, products, customers, delivery performance, customer feedback, marketing performance and inventory (5,000 orders from 16 Mar 2023 to 4 Nov 2024, 2,500 customers, 268 products).
 
-## 📂 Project Structure
+> **The data is synthetic.** Names, emails, phone numbers and addresses are fake, and results describe this dataset, not the real Blinkit business.
 
-```text
-blinkit-analytics-dashboard/
-│
-├── data/
-│   ├── raw/
-│   └── orders_enriched.csv
-│
-├── src/
-│   └── analysis.py
-│
-├── dashboard/
-│   ├── index.html
-│   └── data.js
-│
-├── outputs/
-│
-├── sql/
-│   └── queries.sql
-│
-├── requirements.txt
-└── README.md
-```
-## ⚙️ Installation and Setup
+### Data quality notes
+- No duplicates or broken keys; each order has exactly one item, delivery record and feedback row, so joins cannot duplicate revenue.
+- `order_total` matches `quantity × unit_price` in only 0.14% of orders. Revenue uses `order_total`.
+- March 2023 and November 2024 are **partial months**; they are flagged (marked with `*`) in the dashboard and notebook.
+- `delivery_time_minutes` is the delay against the promised time (negative = early), not the delivery duration.
+- Marketing revenue (₹3.22 Cr) is about 3x total order revenue (₹1.10 Cr), so the two sources do not reconcile and are analysed separately.
+- Inventory damage figures are implausible (see above).
 
-### Step 1: Clone the Repository
+## Dashboard
+Five tabs (Overview, Delivery, Feedback, Marketing, Inventory) with filters for year, category, customer segment and payment method, KPI cards and a findings panel per tab. Built with HTML and Chart.js; it runs entirely in the browser.
 
+| Delivery | Marketing |
+|---|---|
+| ![Delivery](docs/screenshots/delivery.png) | ![Marketing](docs/screenshots/marketing.png) |
+
+## How to run
 ```bash
-git clone https://github.com/sona-rajendren/blinkit-analytics-dashboard.git
-```
-
-Navigate to the project directory:
-
-```bash
-cd blinkit-analytics-dashboard
-```
-
-### Step 2: Install Dependencies
-
-```bash
+git clone https://github.com/sona-rajendren/Blinkit-Analytics-Dashboard.git
+cd Blinkit-Analytics-Dashboard
+python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
+
+python src/analysis.py   # joins tables, writes outputs/, charts and dashboard/data.js
+python src/run_sql.py    # loads CSVs into SQLite and runs sql/queries.sql
+jupyter notebook notebooks/01_eda_and_cleaning.ipynb
+```
+Open `dashboard/index.html` in a browser to view the dashboard (internet needed for the Chart.js CDN).
+
+## Project structure
+```
+├── data/
+│   ├── raw/                 # 8 source tables
+│   └── processed/           # orders_enriched.csv (joined, order level)
+├── notebooks/
+│   └── 01_eda_and_cleaning.ipynb   # data quality checks, EDA, statistical tests, conclusions
+├── sql/queries.sql          # 9 analysis queries
+├── src/
+│   ├── analysis.py          # data pipeline, summary tables, charts, dashboard data
+│   └── run_sql.py           # SQLite loader and query runner
+├── dashboard/               # index.html + data.js
+├── outputs/                 # summary CSVs, charts, SQL results
+├── docs/screenshots/
+└── requirements.txt
 ```
 
-If you do not have a `requirements.txt` file, install the main Python libraries:
+## Tools
+Python (pandas, NumPy, Matplotlib, SciPy), SQL (SQLite), Jupyter, HTML/CSS/JavaScript, Chart.js.
 
-```bash
-pip install pandas numpy matplotlib
-```
+## Limitations and next steps
+- Synthetic data: ratings are independent of delivery, and campaign results are almost uniform, so conclusions are limited.
+- One item per order and no cost data, so basket analysis and profit analysis are not possible yet.
+- Next: forecast monthly orders, model late-delivery risk once richer features exist, and add profit analysis using product margin.
 
-### Step 3: Run the Data Analysis
-
-Execute the analysis script:
-
-```bash
-python src/analysis.py
-```
-
-This script processes the available datasets and generates analysis outputs used by the dashboard.
-
-### Step 4: Open the Dashboard
-
-1. Navigate to the `dashboard` folder.
-2. Open `index.html` in your web browser.
-3. Explore the available charts, KPIs, and visualizations.
-
-**Note:** If the dashboard requires `data.js`, make sure the analysis script has generated it successfully.
-
-## 📊 Key Performance Indicators
-
-The dashboard focuses on the following metrics:
-
-- Total Orders
-- Total Revenue
-- Average Order Value
-- On-Time Delivery Percentage
-- Customer Ratings
-- Marketing Performance
-- Inventory Status
-
-## 🔍 Expected Insights
-
-The analysis helps identify:
-
-- Sales and revenue trends.
-- Delivery performance patterns.
-- Customer satisfaction trends.
-- Marketing campaign performance.
-- Inventory-related issues.
-- Opportunities for operational improvement.
-
-*The insights depend on the datasets included in the project. The results should not be interpreted as actual Blinkit business figures.*
-
-## 📚 Project Learning Outcomes
-
-Through this project, the following concepts are demonstrated:
-
-- Data cleaning and preprocessing.
-- Exploratory Data Analysis (EDA).
-- Data aggregation and transformation.
-- SQL queries and data analysis.
-- Data visualization.
-- Interactive dashboard development.
-- Communicating insights through visualizations.
-
-## 🚀 Future Enhancements
-
-- Add real-time data integration.
-- Include advanced predictive analytics.
-- Improve dashboard filtering and interactivity.
-- Develop sales forecasting models.
-- Add automated report generation.
-
-## 👩‍💻 Author
-
-**Sona Rajendren**
-
-MCA Student | Presidency University
+## Author
+**Sona Rajendren**, MCA student at Presidency University, Bengaluru · [GitHub](https://github.com/sona-rajendren)

@@ -1,0 +1,13 @@
+feedback_category,sentiment,responses
+App Experience,Negative,388
+App Experience,Neutral,421
+App Experience,Positive,404
+Customer Service,Negative,417
+Customer Service,Neutral,431
+Customer Service,Positive,418
+Delivery,Negative,405
+Delivery,Neutral,446
+Delivery,Positive,420
+Product Quality,Negative,432
+Product Quality,Neutral,440
+Product Quality,Positive,378
